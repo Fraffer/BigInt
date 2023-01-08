@@ -30,6 +30,26 @@ namespace unlimitedintegers
 
 		return *this;
 	}
+
+	bool BigInt::operator==(const BigInt& other) const
+	{
+		if (bNegative != other.bNegative)
+			return false;
+		if (digits.size() != other.digits.size())
+			return false;
+		if (digits.front() != other.digits.front())
+			return false;
+		if (digits.back() != other.digits.back())
+			return false;
+
+		for (int i = 0; i < digits.size(); i++)
+		{
+			if (digits[i] != other.digits[i])
+				return false;
+		}
+
+		return true;
+	}
 	
 	BigInt BigInt::operator+(const BigInt& other) const
 	{
@@ -70,11 +90,70 @@ namespace unlimitedintegers
 		return *this;
 	}
 
+	BigInt& BigInt::operator-=(const BigInt& other)
+	{
+		// if the two numbers have opposite signs, then I need to keep the sign of the first operand
+		if (bNegative != other.bNegative)
+		{
+			*this += other;
+		}
+		else
+		{
+			const BigInt& max = GetAbsMax(*this, other);
+			const BigInt& min = GetAbsMin(*this, other);
+
+			int borrow = 0, newDigit = 0;
+			int minSize = min.digits.size(), maxSize = max.digits.size();
+			
+			int i;
+			for (i = 0; i < minSize; i++)
+			{								
+				UINT64 tmp = max[i] - borrow;	
+
+				borrow = tmp < min[i] ? 1 : 0;
+
+				newDigit = (tmp + borrow * 10) - min[i];
+
+				digits[i] = (newDigit);
+			}
+
+			while (borrow == 1)
+			{
+				if (max[i] > 0)
+				{
+					digits[i] -= borrow;
+					borrow = 0;
+				}
+				else
+					digits[i] = 9;
+			}
+
+			RemoveZerosPadding();
+			
+			bNegative = max.bNegative;
+		}
+
+		return *this;
+	}
+
 	BigInt BigInt::operator-(const BigInt& other) const
 	{
 		BigInt result;
 
+		result = *this;
+		result -= other;
+
 		return result;
+	}
+
+	UINT64& BigInt::operator[](int i)
+	{
+		return digits[i];
+	}
+
+	const UINT64& BigInt::operator[](int i) const
+	{
+		return digits[i];
 	}
 
 	BigInt::~BigInt()
@@ -102,6 +181,26 @@ namespace unlimitedintegers
 		digits.push_front(digit);
 	}
 
+	int BigInt::Size() const
+	{
+		return digits.size();
+	}
+
+	bool BigInt::Sign() const
+	{
+		return bNegative;
+	}
+	
+	UINT64 BigInt::GetMostSignificantDigit() const
+	{
+		return digits.back();
+	}
+
+	UINT64 BigInt::GetLessSignificantDigit() const
+	{
+		return digits.front();
+	}
+
 	void BigInt::Print() const
 	{
 		if (bNegative) std::cout << '-';
@@ -121,5 +220,186 @@ namespace unlimitedintegers
 		{
 			digits.push_back(0);
 		}
+	}
+
+	void BigInt::RemoveZerosPadding(int count/*=0*/)
+	{
+		int counter = 0;
+		for (int i = digits.size() - 1; i > count; i--)
+		{
+			if (digits[i] != 0)
+				return;
+
+			if (count != 0 && counter == count)
+				return;
+
+			digits.pop_back();
+			counter++;
+		}
+	}
+
+	/*const BigInt& GetMax(const BigInt& a, const BigInt& b) 
+	{
+		int aSize = a.Size(), bSize = b.Size();
+		UINT64 aMSDigit = a.GetMostSignificantDigit(), bMSDigit = b.GetMostSignificantDigit();		
+		bool aSign = a.Sign(), bSign = b.Sign();
+
+		if (aSize == bSize)
+		{
+			if (aMSDigit == bMSDigit)
+			{
+				if (aSign == bSign)
+					return a;
+				else if (aSign == false && bSign == true)
+					return a;
+				else if (aSign == true && bSign == false)
+					return b;
+			}
+			else if (aMSDigit > bMSDigit)
+			{
+				if (aSign == false)
+					return a;
+				else 
+					return b;
+			}
+			else
+			{
+				if (bSign == false)
+					return b;
+				else
+					return a;
+			}
+		}
+		else if (aSize > bSize)
+		{
+			if (aSign == false)
+				return a;
+			else
+				return b;
+		}
+		else
+		{
+			if (bSign == false)
+				return b;
+			else
+				return a;
+		}
+	}*/
+
+	const BigInt& GetAbsMax(const BigInt& a, const BigInt& b)
+	{
+		int aSize = a.Size(), bSize = b.Size();
+		UINT64 aMSDigit = a.GetMostSignificantDigit(), bMSDigit = b.GetMostSignificantDigit();
+		bool aSign = a.Sign(), bSign = b.Sign();
+
+		if (aSize == bSize)
+		{
+			if (aMSDigit == bMSDigit)
+			{
+				for (int i = aSize - 1; i > 0; i--)
+				{
+					if (a[i] > b[i])
+						return a;
+					else if (b[i] > a[i])
+						return b;
+					else
+						continue;
+				}
+
+				return a;
+			}
+		}
+		else if (aSize > bSize)
+			return a;		
+		else		
+			return b;		
+	}
+
+	/*const BigInt& GetMin(const BigInt& a, const BigInt& b)
+	{
+		int aSize = a.Size(), bSize = b.Size();
+		UINT64 aMSDigit = a.GetMostSignificantDigit(), bMSDigit = b.GetMostSignificantDigit();
+		bool aSign = a.Sign(), bSign = b.Sign();
+
+		if (aSize == bSize)
+		{
+			if (aMSDigit == bMSDigit)
+			{
+				if (aSign == bSign)
+					return a;
+				else if (aSign == false && bSign == true)
+					return b;
+				else if (aSign == true && bSign == false)
+					return a;
+			}
+			else if (aMSDigit > bMSDigit)
+			{
+				if (aSign == false)
+					return b;
+				else
+					return a;
+			}
+			else
+			{
+				if (bSign == false)
+					return a;
+				else
+					return b;
+			}
+		}
+		else if (aSize > bSize)
+		{
+			if (aSign == false)
+				return b;
+			else
+				return a;
+		}
+		else
+		{
+			if (bSign == false)
+				return a;
+			else
+				return b;
+		}
+	}*/
+
+	const BigInt& GetAbsMin(const BigInt& a, const BigInt& b)
+	{
+		if (a == b) return a;
+
+		int aSize = a.Size(), bSize = b.Size();
+		UINT64 aMSDigit = a.GetMostSignificantDigit(), bMSDigit = b.GetMostSignificantDigit();
+		bool aSign = a.Sign(), bSign = b.Sign();
+
+		if (aSize == bSize)
+		{
+			if (aMSDigit == bMSDigit)
+			{
+				for (int i = aSize - 1; i > 0; i--)
+				{
+					if (a[i] > b[i])
+						return b;
+					else if (b[i] > a[i])
+						return a;
+					else
+						continue;
+				}
+
+				return b;
+			}
+			else if (aMSDigit > bMSDigit)
+				return b;
+			else
+				return a;
+		}
+		else if (aSize > bSize)
+			return b;
+		else
+			return a;
+	}
+
+	bool GetSignOfMax(const BigInt& a, const BigInt& b)
+	{
+		return GetAbsMax(a, b).Sign();
 	}
 }	// namespace end
