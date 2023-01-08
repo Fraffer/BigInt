@@ -2,11 +2,15 @@
 
 int main()
 {
-	unlimitednumbers::BigInt a(10);
-	unlimitednumbers::BigInt b = 20;
+	unlimitedintegers::BigInt a(100);
+	unlimitedintegers::BigInt b(20);	
+	unlimitedintegers::BigInt c;	
+
+	c = a + b;
 
 	a.Print();
 	b.Print();
+	c.Print();
 
 	return 0;
 }
