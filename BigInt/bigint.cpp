@@ -51,99 +51,215 @@ namespace unlimitedintegers
 		return true;
 	}
 	
+	bool BigInt::operator!=(const BigInt& other) const
+	{
+		return !(*this == other);
+	}
+
 	BigInt BigInt::operator+(const BigInt& other) const
 	{
-		BigInt result;		
+		BigInt result;
 
-		result = *this;
-		result += other;
-		
+		BigInt max = GetAbsMax(*this, other);
+		BigInt min = GetAbsMin(*this, other);
+
+		// the sign is determined by the max operand
+		if (max.bNegative == false && min.bNegative == true)
+		{
+			BigInt tmp = min;
+			tmp.bNegative = false;
+			result = max - tmp;
+			return result;
+		}
+		if (max.bNegative == true && min.bNegative == false)
+		{
+			BigInt tmp = min;
+			tmp.bNegative = true;
+			result = max - tmp;
+			return result;
+		}
+
+		int carry = 0, newDigit = 0;
+		int thisSize = digits.size(), otherSize = other.digits.size();		
+
+		for (int i = 0; i < max.digits.size(); i++)
+		{
+			if (i >= min.digits.size())
+			{
+				newDigit = max.digits[i] + carry;
+			}
+			else
+				newDigit = max.digits[i] + min.digits[i] +  carry;
+
+			carry = newDigit >= 10 ? 1 : 0;
+			result.digits.push_back(newDigit % 10);
+		}
+
+		result.bNegative = bNegative;
 		return result;
 	}
 
 	BigInt& BigInt::operator+=(const BigInt& other)
 	{
-		int carry = 0, newDigit = 0;
-		int thisSize = digits.size(), otherSize = other.digits.size();		
-
-		// if this BigInt has less digits then the other, then I add zeros in order to get the same size, since I will loop always on this BigInt size
-		if (otherSize > thisSize)
-		{ 
-			AddZerosPadding(otherSize - thisSize);
-			thisSize = digits.size();
-		}
-
-		for (int i = 0; i < thisSize; i++)
-		{
-			// this check will guarantee the case when the other BigInt has a lower size than this BigInt
-			if (i < otherSize)		
-				newDigit = digits.at(i) + other.digits.at(i) + carry;			
-			else
-				newDigit = digits.at(i) + carry;			
-			
-			// if the current digit result is higher than 9, than I need to carry 1 to next digits index
-			carry = newDigit >= 10 ? 1 : 0;
-
-			digits[i] = (newDigit % 10);
-		}
-
-		return *this;
+		BigInt result = *this + other;
+		return result;
 	}
 
 	BigInt& BigInt::operator-=(const BigInt& other)
-	{
-		// if the two numbers have opposite signs, then I need to keep the sign of the first operand
-		if (bNegative != other.bNegative)
-		{
-			*this += other;
-		}
-		else
-		{
-			const BigInt& max = GetAbsMax(*this, other);
-			const BigInt& min = GetAbsMin(*this, other);
-
-			int borrow = 0, newDigit = 0;
-			int minSize = min.digits.size(), maxSize = max.digits.size();
-			
-			int i;
-			for (i = 0; i < minSize; i++)
-			{								
-				UINT64 tmp = max[i] - borrow;	
-
-				borrow = tmp < min[i] ? 1 : 0;
-
-				newDigit = (tmp + borrow * 10) - min[i];
-
-				digits[i] = (newDigit);
-			}
-
-			while (borrow == 1)
-			{
-				if (max[i] > 0)
-				{
-					digits[i] -= borrow;
-					borrow = 0;
-				}
-				else
-					digits[i] = 9;
-			}
-
-			RemoveZerosPadding();
-			
-			bNegative = max.bNegative;
-		}
-
-		return *this;
+	{		
+		BigInt result = *this - other;
+		return result;
 	}
 
 	BigInt BigInt::operator-(const BigInt& other) const
 	{
 		BigInt result;
 
-		result = *this;
-		result -= other;
+		BigInt max = GetAbsMax(*this, other);
+		BigInt min = GetAbsMin(*this, other);
+
+		// the sign is determined by the first operand
+		if (this->bNegative == false && other.bNegative == true)
+		{
+			BigInt tmp = other;
+			tmp.bNegative = false;
+			result = *this + tmp;
+			return result;
+		}
+		if (this->bNegative == true && other.bNegative == false)
+		{
+			BigInt tmp = other;
+			tmp.bNegative = true;
+			result = *this + tmp;
+			return result;
+		}
+
+		int borrow = 0, newDigit = 0;
+		int minSize = min.digits.size(), maxSize = max.digits.size(), thisSize = digits.size(), otherSize = other.digits.size();
+
+		min.AddZerosPadding(maxSize - minSize);
+		minSize = min.digits.size();
+
+		int i;
+		for (i = 0; i < minSize; i++)
+		{
+			UINT64 tmp = max[i] - borrow;
+
+			borrow = tmp < min[i] ? 1 : 0;
+
+			newDigit = (tmp + borrow * 10) - min[i];
+
+			result.digits.push_back(newDigit);
+		}
+
+		result.RemoveZerosPadding();
+
+		if (bNegative == false)
+		{
+			if (max == other) result.bNegative = true;
+			else result.bNegative = false;
+		}
+		else
+		{
+			if (max == other) result.bNegative = false;
+			else result.bNegative = true;
+		}
 
 		return result;
+	}
+
+	bool BigInt::operator >(const BigInt& other) const
+	{	
+		if (*this == other) return false;
+
+		if (bNegative == true && other.bNegative == false)
+			return false;
+		if (bNegative == other.bNegative == true)
+		{
+			if (digits.size() > other.digits.size())
+				return false;
+			if (digits.front() > other.digits.front())
+				return false;
+			if (digits.back() > other.digits.back())
+				return false;
+
+			for (int i = 0; i < digits.size(); i++)
+			{
+				if (digits[i] >= other.digits[i])
+					return false;
+			}
+		}
+		if (bNegative == other.bNegative == false)
+		{
+			if (digits.size() < other.digits.size())
+				return false;
+			if (digits.front() < other.digits.front())
+				return false;
+			if (digits.back() < other.digits.back())
+				return false;
+
+			for (int i = 0; i < digits.size(); i++)
+			{
+				if (digits[i] <= other.digits[i])
+					return false;
+			}
+		}
+
+		return true;
+	}
+
+	bool BigInt::operator >=(const BigInt& other) const
+	{
+		if (*this == other) return true;
+
+		return *this > other;
+	}
+
+	bool BigInt::operator <(const BigInt& other) const
+	{
+		if (*this == other) return false;
+
+		if (bNegative == false && other.bNegative == true)
+			return false;
+		if (bNegative == other.bNegative == false)
+		{
+			if (digits.size() > other.digits.size())
+				return false;
+			if (digits.front() > other.digits.front())
+				return false;
+			if (digits.back() > other.digits.back())
+				return false;
+
+			for (int i = 0; i < digits.size(); i++)
+			{
+				if (digits[i] >= other.digits[i])
+					return false;
+			}
+		}
+		if (bNegative == other.bNegative == true)
+		{
+			if (digits.size() < other.digits.size())
+				return false;
+			if (digits.front() < other.digits.front())
+				return false;
+			if (digits.back() < other.digits.back())
+				return false;
+
+			for (int i = 0; i < digits.size(); i++)
+			{
+				if (digits[i] <= other.digits[i])
+					return false;
+			}
+		}
+
+		return true;
+	}
+
+	bool BigInt::operator <=(const BigInt& other) const
+	{
+		if (*this == other) return true;
+
+		return *this < other;
 	}
 
 	UINT64& BigInt::operator[](int i)

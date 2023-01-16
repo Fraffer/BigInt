@@ -14,6 +14,7 @@ namespace unlimitedintegers
 		BigInt(const BigInt& other);
 		BigInt& operator =(const BigInt& other);
 		bool operator ==(const BigInt& other) const;
+		bool operator !=(const BigInt& other) const;
 		BigInt operator +(const BigInt& other) const;
 		BigInt operator -(const BigInt& other) const;
 		BigInt operator *(const BigInt& other) const;
@@ -24,6 +25,10 @@ namespace unlimitedintegers
 		BigInt& operator /=(const BigInt& other);
 		BigInt& operator ++();
 		BigInt& operator --();
+		bool operator >(const BigInt& other) const;
+		bool operator >=(const BigInt& other) const;
+		bool operator <(const BigInt& other) const;
+		bool operator <=(const BigInt& other) const;
 		UINT64& operator [](int i);
 		const UINT64& operator [](int i) const;
 		~BigInt();
