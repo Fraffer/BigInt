@@ -35,11 +35,11 @@ int main()
 	//t_Sum();
 	//t_Difference();
 
-	unlimitedintegers::BigInt a(-1000);
-	unlimitedintegers::BigInt b(9);
+	unlimitedintegers::BigInt a(12);
+	unlimitedintegers::BigInt b(12);
 	unlimitedintegers::BigInt c;	
 
-	c = b + a;
+	c = a * b;
 
 	a.Print();
 	b.Print();

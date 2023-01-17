@@ -168,6 +168,47 @@ namespace unlimitedintegers
 		return result;
 	}
 
+	BigInt BigInt::operator*(const BigInt& other) const
+	{
+		BigInt result(0);		
+
+		BigInt max = GetAbsMax(*this, other);
+		BigInt min = GetAbsMin(*this, other);
+
+		int minSize = min.digits.size(), maxSize = max.digits.size(), thisSize = digits.size(), otherSize = other.digits.size();
+
+		min.AddZerosPadding(maxSize - minSize);
+		minSize = min.digits.size();
+
+		for (int i = 0; i < otherSize; i++)
+		{
+			UINT64 tmp = 0;
+			UINT64 multiplier = other[i];
+			for (int j = 0; j < thisSize; j++)
+			{
+				UINT64 currentDigit = digits[j];
+				int innerExponent = pow(10, j);
+				tmp += currentDigit * multiplier * innerExponent;
+			}
+			int outerExponent = pow(10, i);
+			BigInt a(tmp * outerExponent);
+
+			BigInt value = result + a;
+			result = value;
+		}
+
+		if (bNegative == true &&  other.bNegative == true)
+			result.bNegative = false;
+		if (bNegative == false && other.bNegative == false)
+			result.bNegative = false;
+		if (bNegative == false && other.bNegative == true)
+			result.bNegative = true;
+		if (bNegative == true && other.bNegative == false)
+			result.bNegative = true;
+
+		return result;
+	}
+
 	bool BigInt::operator >(const BigInt& other) const
 	{	
 		if (*this == other) return false;
@@ -424,6 +465,10 @@ namespace unlimitedintegers
 
 				return a;
 			}
+			else if (aMSDigit >= bMSDigit)
+				return a;
+			else
+				return b;				 
 		}
 		else if (aSize > bSize)
 			return a;		
