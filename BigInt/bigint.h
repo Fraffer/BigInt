@@ -13,6 +13,7 @@ namespace unlimitedintegers
 		explicit BigInt(char value[]);
 		BigInt(const BigInt& other);
 		BigInt& operator =(const BigInt& other);
+		BigInt& operator=(const int other);
 		bool operator ==(const BigInt& other) const;
 		bool operator !=(const BigInt& other) const;
 		BigInt operator +(const BigInt& other) const;
@@ -29,6 +30,9 @@ namespace unlimitedintegers
 		bool operator >=(const BigInt& other) const;
 		bool operator <(const BigInt& other) const;
 		bool operator <=(const BigInt& other) const;
+		bool operator<=(const int other) const;
+		bool operator <(const int other) const;
+		bool operator>(const int other) const;
 		UINT64& operator [](int i);
 		const UINT64& operator [](int i) const;
 		~BigInt();
@@ -55,4 +59,5 @@ namespace unlimitedintegers
 	const BigInt& GetAbsMin(const BigInt& a, const BigInt& b);
 	//const BigInt& GetMin(const BigInt& a, const BigInt& b);
 	bool GetSignOfMax(const BigInt& a, const BigInt& b);
+	int GetTimesCount(const BigInt& a, const BigInt& b);
 }	// namespace end

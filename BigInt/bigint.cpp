@@ -31,6 +31,15 @@ namespace unlimitedintegers
 		return *this;
 	}
 
+	BigInt& BigInt::operator=(const int other)
+	{
+		BigInt tmp(other);
+
+		*this = tmp;		
+
+		return *this;
+	}
+
 	bool BigInt::operator==(const BigInt& other) const
 	{
 		if (bNegative != other.bNegative)
@@ -93,6 +102,11 @@ namespace unlimitedintegers
 
 			carry = newDigit >= 10 ? 1 : 0;
 			result.digits.push_back(newDigit % 10);
+		}
+
+		if (carry > 0)
+		{
+			result.digits.push_back(carry);
 		}
 
 		result.bNegative = bNegative;
@@ -209,40 +223,109 @@ namespace unlimitedintegers
 		return result;
 	}
 
+	BigInt& BigInt::operator*=(const BigInt& other)
+	{
+		BigInt result = *this * other;
+		return result;
+	}
+
+	BigInt BigInt::operator/(const BigInt& other) const
+	{
+		if (other.digits.size() == 1 && other.digits[0] == 0)
+			throw("Division by zero not allowed");
+
+		if (*this < other)
+			return BigInt(0);				
+
+		BigInt result;
+		
+		if (this->bNegative == false && other.bNegative == true)
+			result.bNegative = true;
+		if (this->bNegative == true && other.bNegative == false)
+			result.bNegative = true;		
+
+		BigInt unsignedThis(*this);
+		unsignedThis.bNegative = false;
+
+		BigInt unsignedOther(other);
+		unsignedOther.bNegative = false;
+
+		if (unsignedThis == unsignedOther)
+		{
+			result.digits.push_back(1);
+			return result;
+		}
+		
+		int thisSize = unsignedThis.digits.size(), otherSize = unsignedOther.digits.size();
+		int dividendIndex = thisSize - 1;
+
+		BigInt partialDividend;
+		while (dividendIndex >= 0)
+		{						
+			if (unsignedOther > partialDividend)
+			{				
+				partialDividend.digits.push_front(unsignedThis.digits[dividendIndex]);
+				dividendIndex--;
+			}
+
+			if (unsignedOther <= partialDividend || dividendIndex == -1)
+			{
+				int partialDivisionResult = GetTimesCount(unsignedOther, partialDividend);
+				BigInt rest = partialDividend - (unsignedOther * partialDivisionResult);
+
+				result.digits.push_front(partialDivisionResult);
+				partialDividend = rest;
+			}			
+		}
+
+		return result;
+	}
+
+	BigInt& BigInt::operator/=(const BigInt& other)
+	{
+		BigInt result = *this / other;
+		return result;
+	}
+
 	bool BigInt::operator >(const BigInt& other) const
 	{	
 		if (*this == other) return false;
+		if (other.digits.size() == 0) return true;
 
 		if (bNegative == true && other.bNegative == false)
 			return false;
-		if (bNegative == other.bNegative == true)
+		if (bNegative == true && other.bNegative == true)
 		{
 			if (digits.size() > other.digits.size())
 				return false;
-			if (digits.front() > other.digits.front())
-				return false;
-			if (digits.back() > other.digits.back())
-				return false;
+			if (digits.size() < other.digits.size())
+				return true;
 
-			for (int i = 0; i < digits.size(); i++)
+			for (int i = digits.size() - 1; i >= 0; i--)
 			{
-				if (digits[i] >= other.digits[i])
+				if (digits[i] == other.digits[i])
+					continue;
+				if (digits[i] > other.digits[i])
 					return false;
+				if (digits[i] < other.digits[i])
+					return true;
 			}
 		}
-		if (bNegative == other.bNegative == false)
+		if (bNegative == false && other.bNegative == false)
 		{
+			if (digits.size() > other.digits.size())
+				return true;
 			if (digits.size() < other.digits.size())
-				return false;
-			if (digits.front() < other.digits.front())
-				return false;
-			if (digits.back() < other.digits.back())
-				return false;
+				return false;				
 
-			for (int i = 0; i < digits.size(); i++)
+			for (int i = digits.size() - 1; i >= 0; i--)
 			{
-				if (digits[i] <= other.digits[i])
+				if (digits[i] == other.digits[i])
+					continue;
+				if (digits[i] < other.digits[i])
 					return false;
+				if (digits[i] > other.digits[i])
+					return true;
 			}
 		}
 
@@ -259,44 +342,74 @@ namespace unlimitedintegers
 	bool BigInt::operator <(const BigInt& other) const
 	{
 		if (*this == other) return false;
+		if (other.digits.size() == 0) return true;
 
 		if (bNegative == false && other.bNegative == true)
 			return false;
-		if (bNegative == other.bNegative == false)
+		if (bNegative == false && other.bNegative == false)
 		{
 			if (digits.size() > other.digits.size())
 				return false;
-			if (digits.front() > other.digits.front())
-				return false;
-			if (digits.back() > other.digits.back())
-				return false;
+			if (digits.size() < other.digits.size())
+				return true;
 
-			for (int i = 0; i < digits.size(); i++)
+			for (int i = digits.size() - 1; i >= 0; i--)
 			{
-				if (digits[i] >= other.digits[i])
+				if (digits[i] == other.digits[i])
+					continue;
+				if (digits[i] > other.digits[i])
 					return false;
+				if (digits[i] < other.digits[i])
+					return true;
 			}
 		}
-		if (bNegative == other.bNegative == true)
+		if (bNegative == true && other.bNegative == true)
 		{
+			if (digits.size() > other.digits.size())
+				return true;
 			if (digits.size() < other.digits.size())
-				return false;
-			if (digits.front() < other.digits.front())
-				return false;
-			if (digits.back() < other.digits.back())
-				return false;
+				return false;			
 
-			for (int i = 0; i < digits.size(); i++)
+			for (int i = digits.size() - 1; i >= 0; i--)
 			{
-				if (digits[i] <= other.digits[i])
+				if (digits[i] == other.digits[i])
+					continue;
+				if (digits[i] < other.digits[i])
 					return false;
+				if (digits[i] > other.digits[i])
+					return true;
 			}
 		}
 
 		return true;
 	}
 
+	bool BigInt::operator <(const int other) const
+	{
+		if (*this == other) return false;
+		
+		BigInt tmp(other);
+
+		return *this < other;		
+	}
+
+	bool BigInt::operator >(const int other) const
+	{
+		if (*this == other) return false;
+
+		BigInt tmp(other);
+
+		return *this > other;
+	}
+
 	bool BigInt::operator <=(const BigInt& other) const
+	{
+		if (*this == other) return true;
+
+		return *this < other;
+	}
+
+	bool BigInt::operator <=(const int other) const
 	{
 		if (*this == other) return true;
 
@@ -562,5 +675,25 @@ namespace unlimitedintegers
 	bool GetSignOfMax(const BigInt& a, const BigInt& b)
 	{
 		return GetAbsMax(a, b).Sign();
+	}
+
+	// return how much times BigInt A is into BigInt B, rounded to first int enough big
+	int GetTimesCount(const BigInt& a, const BigInt& b)
+	{
+		int result = 0;
+
+		if (a > b) return 0;
+		if (a == b) return 1;
+
+		BigInt aCopy(a);
+
+		while (aCopy <= b)
+		{
+			BigInt tmp = aCopy + a;
+			aCopy = tmp;
+			result++;
+		}
+
+		return result;
 	}
 }	// namespace end
